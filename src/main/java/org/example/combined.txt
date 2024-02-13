@@ -1,0 +1,160 @@
+package org.example;
+
+import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
+
+public abstract class Game<T extends Player> {
+	private String gameName;
+	 List<T> players;
+	private Map<Character, GameAction> gameActions;
+
+	public Game(String gameName, List<T> players, Map<Character, GameAction> gameActions) {
+		this.gameName = gameName;
+		this.players = players;
+		this.gameActions = gameActions;
+	}
+
+	public abstract T createNewPlayer(String name);
+
+	public abstract Map<Character, GameAction> getGameActions();
+
+	public int addPlayer(String name) {
+		T player = createNewPlayer(name);
+		players.add(player);
+		return players.indexOf(player);
+	}
+
+	public boolean executeGameAction(char key, int playerIndex) {
+		if (gameActions.containsKey(key)) {
+			Predicate<Integer> action = gameActions.get(key).action();
+			return action.test(playerIndex);
+		}
+		return false;
+	}
+
+	// Other concrete methods, getters, and helper methods
+}
+
+
+package org.example;
+
+import java.util.function.Predicate;
+
+public record GameAction(char key, String prompt, Predicate<Integer> action) {}
+
+package org.example;
+
+import java.util.Map;
+import java.util.Scanner;
+
+public class GameConsole<T extends Player> {
+	private final Game<T> game;
+	private static final Scanner scanner = new Scanner(System.in);
+
+	public GameConsole(Game<T> game) {
+		this.game = game;
+	}
+
+	public void addPlayer() {
+		System.out.print("Enter player 1 name: ");
+		String player1Name = scanner.nextLine();
+		game.addPlayer(player1Name);
+		System.out.print("Enter player 2 name: ");
+		String player2Name = scanner.nextLine();
+		game.addPlayer(player2Name);
+	}
+
+	public void playGame() {
+		Map<Character, GameAction> gameActions = game.getGameActions();
+		int currentPlayerIndex = 0;
+		while (true) {
+			System.out.println("Available game options:");
+			for (GameAction action : gameActions.values()) {
+				System.out.println(action.key() + ": " + action.prompt());
+			}
+			System.out.print(game.players.get(currentPlayerIndex).getName() + ", select an option: ");
+			char input = scanner.next().charAt(0);
+			boolean continuePlaying = game.executeGameAction(input, currentPlayerIndex);
+			if (!continuePlaying) {
+				break;
+			}
+			currentPlayerIndex = (currentPlayerIndex + 1) % game.players.size(); // Switch players
+		}
+	}
+}
+
+
+
+package org.example;
+
+public class Main {
+	public static void main(String[] args) {
+		Game<TicTacToePlayer> game = new TicTacToeGame("Simple Game");
+		GameConsole<TicTacToePlayer> gameConsole = new GameConsole<>(game);
+		gameConsole.addPlayer();
+		gameConsole.playGame();
+
+	}
+}package org.example;
+
+@FunctionalInterface
+public interface Player {
+	String getName();
+}
+package org.example;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class TicTacToeGame extends Game<TicTacToePlayer> {
+	public TicTacToeGame(String gameName) {
+		super(gameName, new ArrayList<>(), createGameActions());
+	}
+
+	private static Map<Character, GameAction> createGameActions() {
+		Map<Character, GameAction> actions = new HashMap<>();
+		actions.put('1', new GameAction('1', "Place X in position 1", (playerIndex) -> {
+			// Implement code to place X in position 1 and check for win/draw
+			return true; // Return true to continue playing
+		}));
+		actions.put('2', new GameAction('2', "Place X in position 2", (playerIndex) -> {
+			// Implement code to place X in position 2 and check for win/draw
+			return true; // Return true to continue playing
+		}));
+		// Add more actions for other positions
+		actions.put('q', new GameAction('q', "Quit game", (playerIndex) -> {
+			System.out.println("Quitting the game");
+			return false; // Return false to end the game
+		}));
+		return actions;
+	}
+
+	@Override
+	public TicTacToePlayer createNewPlayer(String name) {
+		return new TicTacToePlayer(name);
+	}
+
+	@Override
+	public Map<Character, GameAction> getGameActions() {
+		return createGameActions();
+	}
+}
+package org.example;
+
+public class TicTacToePlayer implements Player {
+	private String playerName;
+
+	public TicTacToePlayer(String playerName) {
+		this.playerName = playerName;
+	}
+
+	@Override
+	public String getName() {
+		return playerName;
+	}
+}
+
+
